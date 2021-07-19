@@ -1,5 +1,50 @@
 import json
-import geojson
+import math
+from logging import info
+import pyproj    
+from pyproj import Geod
+import shapely
+import shapely.ops as ops
+from shapely.geometry.polygon import Polygon
+from functools import partial
+import warnings
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# Defining functions
+
+def area_calculator(list_of_coords):
+    '''
+    Calculates the area from an input list of coordinate tuples
+    '''
+    geom = Polygon(list_of_coords)
+    geom_area = ops.transform(
+        partial(
+            pyproj.transform,
+            pyproj.Proj(init='EPSG:4326'),
+            pyproj.Proj(
+                proj='aea',
+                lat_1=geom.bounds[1],
+                lat_2=geom.bounds[3]
+            )
+        ),
+        geom)
+    area_m2 = geom_area.area
+    area_mi2 = area_m2 * 0.00000038610
+    return area_mi2
+
+# area + perim function
+def area_perimeter(lats, longs):
+    geod = Geod('+a=6378137 +f=0.0033528106647475126')
+
+    poly_area, poly_perimeter = geod.polygon_area_perimeter(longs, lats)
+    poly_area, poly_perimeter = poly_area * 0.00000038610, poly_perimeter * 0.0006213712
+    return abs(poly_area), poly_perimeter
+
+def pp_test(area, perimeter):
+    pp_score = (4 * math.pi * area) / (perimeter ** 2)
+    return pp_score
+
 
 with open('/Users/curtissmith/Projects/gerrymandering_large_files/congressional-district-boundaries-master/Alabama_108_to_112.geojson') as test:
     data = json.loads(test.read())
@@ -39,6 +84,37 @@ for i in districts:
         coord_count = len(data['features'][i]['geometry']['coordinates'][x][0])
         key_string = f'polygon{x+1}_count'
         info_list[i][key_string] = coord_count
-print(info_list)
+        # Step 5: Calculate polygon area
+        # Get list of coordinates for each polygon
+        coord_list = data['features'][i]['geometry']['coordinates'][x][0]
 
-# Step 5: Calculate polygon area
+        # Returns list of lats and list of longs
+        lats = []
+        longs = []
+        for coord in coord_list:
+            longs.append(coord[0])
+            lats.append(coord[1])
+        area, perimeter = area_perimeter(lats, longs)
+
+        # Calculate the Polsby-Popper Score
+        pp_score = pp_test(area, perimeter)
+
+        # Add info to list
+        key_string = f'polygon{x+1}_area'
+        info_list[i][key_string] = area
+        key_string = f'polygon{x+1}_perimeter'
+        info_list[i][key_string] = perimeter
+        key_string = f'polygon{x+1}_pp_score'
+        info_list[i][key_string] = pp_score
+
+
+# Step 6: Calculate Perimeter
+
+# print(info_list)
+
+# Step X: Create export dictionary
+export_dict = {"geo_info":info_list}
+export_dict["properties"] = data['features'][0]['properties']
+print(export_dict)
+
+
