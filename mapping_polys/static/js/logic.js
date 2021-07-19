@@ -33,7 +33,7 @@ let map = L.map('mapid', {
 L.control.layers(baseMaps).addTo(map);
 
 // Accessing the Toronto neighborhoods GeoJSON URL.
-let congDistrict = "https://raw.githubusercontent.com/JeffreyBLewis/congressional-district-boundaries/master/Alabama_16_to_17.geojson";
+let congDistrict = "https://raw.githubusercontent.com/JeffreyBLewis/congressional-district-boundaries/master/Alabama_108_to_112.geojson";
 
 // Create a style for the lines.
 let myStyle = {
