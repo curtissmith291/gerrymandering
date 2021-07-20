@@ -19,12 +19,6 @@ def pp_test(area, perimeter):
     pp_score = (4 * math.pi * area) / (perimeter ** 2)
     return pp_score
 
-
-# initialize main_dictionary, where all calculated informtion for each district will be stored
-main_dictionary =  {"entries": []}
-
-file = '/Users/curtissmith/Projects/gerrymandering_large_files/congressional-district-boundaries-master/Alabama_108_to_112.geojson'
-
 def info_gatherer(file):
     # Step 0: Open file
     with open(file) as test:
@@ -37,7 +31,10 @@ def info_gatherer(file):
     districts = list(range(num_districts))
 
     # Step 2: initialize list of dictionaries to hold data
+    # info_list holds polygon data
     info_list = []
+    # hold properties about each district
+    properties_list = []
 
     # Step 3: Get District Numbers and polygon count
     # Iterate through list of districts
@@ -83,19 +80,47 @@ def info_gatherer(file):
                 "pp_score": pp_score, 
             })
 
+        # Add properties info
+        properties = data['features'][i]['properties']
+        # print(f'properties: {properties}')
+        properties_list.append(properties)
+
     # print(info_list)
 
     # Create export dictionary
-    export_dict = {"geo_info":info_list}
-    export_dict["properties"] = data["features"][0]["properties"]
+    export_dict = {"geo_info":info_list, "properties":properties_list}
+    # export_dict["properties"] = data["features"][0]["properties"]
     # print(export_dict)
     return export_dict
 
-export_dict = info_gatherer(file)
+# --------------------
+# Program Starts Below
+# --------------------
 
-# Add Export dictionary to main dictionary
-main_dictionary["entries"].append(export_dict)
-print(main_dictionary)
+# initialize main_dictionary, where all calculated informtion for each district will be stored
+main_dictionary =  {"entries": []}
+
+# initializing list to hold errors
+error_list = []
+path = '/Users/curtissmith/Projects/gerrymandering_large_files/congressional-district-boundaries-master/'
+
+for filename in os.listdir(path):
+    file = os.path.join(path, filename)
+
+    try:
+        data_dict = info_gatherer(file)
+
+        # Append export dictionary to main dictionary
+        main_dictionary["entries"].append(data_dict)
+    except:
+        error_list.append(filename)
 
 
+
+# Export data
+with open("gerrymandering/output.json", 'w') as out_file:
+    json.dump(main_dictionary, out_file, indent = 4)
+
+print("Complete")
+print(f'Errors: {error_list}')
 

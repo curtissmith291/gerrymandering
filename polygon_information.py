@@ -23,13 +23,14 @@ def info_gatherer(file):
     # Step 0: Open file
     with open(file) as test:
         data = json.loads(test.read())
+    
 
     # Step 1: Get Number of Districts
     num_districts = len(data['features'])
     # print(f'Number of Districts: {num_districts}')
 
     districts = list(range(num_districts))
-    print(districts)
+    # print(districts)
 
     # Step 2: initialize list of dictionaries to hold data
     # info_list holds polygon data
@@ -52,45 +53,22 @@ def info_gatherer(file):
             "polygon_count": num_polygons,
             "polygon_list":[]
             })
-        print(info_list)
+        # print(info_list)
 
         # Step 4: Iterate through polygons
         num_polygons = info_list[i]['polygon_count']
+        # print(num_polygons)    
         for polygon in range(num_polygons):
-            # print(f'polygon: {polygon}')
-            num_coordinates = len(data['features'][i]['geometry']['coordinates'][polygon])
-            # print(num_coordinates)
-            if num_coordinates == 1:
-                # print("Path 1")
-                coord_count = len(data['features'][i]['geometry']['coordinates'][polygon][0])
-                # print(coord_count)
-                # Step 5: Calculate polygon area and perimeter
-                # Get list of coordinates for each polygon
-                coord_list = data['features'][i]['geometry']['coordinates'][polygon][0]
-
-                # Returns list of lats and list of longs
-                lats = []
-                longs = []
-                for coord in coord_list:
-                    longs.append(coord[0])
-                    lats.append(coord[1])
-                area, perimeter = area_perimeter(lats, longs)
-
-                # Calculate the Polsby-Popper Score
-                pp_score = pp_test(area, perimeter)
-                # Add info to list
-                # Located in 'polygon_list':[{}, {}]
-                info_list[i]["polygon_list"].append({
-                    "polygon_num": polygon,
-                    "polygon_count": coord_count,
-                    "polygon_area": area, 
-                    "polygon_perimeter": perimeter,
-                    "pp_score": pp_score, 
-                })
-            else: 
-                # print("Path 2")
+            print(f'polygon: {polygon}')
+            sub_lists_count = len(data['features'][i]['geometry']['coordinates'][polygon][0])
+            sub_lists = data['features'][i]['geometry']['coordinates'][polygon]
+            print(sub_lists_count)
+            # if sub_lists = 2, it's a lat/long pair and coordinates are located here:
+            # data['features'][i]['geometry']['coordinates'][polygon]
+            if sub_lists_count == 2:
+                # number of coordinate pairs
                 coord_count = len(data['features'][i]['geometry']['coordinates'][polygon])
-                # print(coord_count)
+                print("path 1")
                 # Step 5: Calculate polygon area and perimeter
                 # Get list of coordinates for each polygon
                 coord_list = data['features'][i]['geometry']['coordinates'][polygon]
@@ -102,8 +80,7 @@ def info_gatherer(file):
                     longs.append(coord[0])
                     lats.append(coord[1])
                 area, perimeter = area_perimeter(lats, longs)
-                print(area, perimeter)
-
+                
                 # Calculate the Polsby-Popper Score
                 pp_score = pp_test(area, perimeter)
 
@@ -117,24 +94,56 @@ def info_gatherer(file):
                     "pp_score": pp_score, 
                 })
 
+            elif sub_lists_count != 2:
+                print (range(sub_lists_count))
+                for sub in range(sub_lists_count):
+                    print(f'sub; {sub}')
+                    print("path 2")
+                    # number of coordinate pairs
+                    # coord_count = len(data['features'][i]['geometry']['coordinates'][polygon][sub])
+                    coord_count = len(sub_lists[sub])
+                    print("here")
+                    print(f'coord_count: {coord_count}')
+                    # Step 5: Calculate polygon area and perimeter
+                    # Get list of coordinates for each polygon
+                    # coord_list = data['features'][i]['geometry']['coordinates'][polygon][sub]
+                    coord_list = sub_lists[sub]
+                    # print(coord_list)
+                    # Returns list of lats and list of longs
+                    lats = []
+                    longs = []
+                    for coord in coord_list:
+                        longs.append(coord[0])
+                        lats.append(coord[1])
+                    area, perimeter = area_perimeter(lats, longs)
+                    
+                    # Calculate the Polsby-Popper Score
+                    pp_score = pp_test(area, perimeter)
+
+                    # Add info to list
+                    # Located in 'polygon_list':[{}, {}]
+                    info_list[i]["polygon_list"].append({
+                        "polygon_num": polygon,
+                        "polygon_count": coord_count,
+                        "sub_list": sub,
+                        "polygon_area": area, 
+                        "polygon_perimeter": perimeter,
+                        "pp_score": pp_score, 
+                    })
+                    print(info_list)
+                    # print(sub)
+                    
+
         # Add properties info
         properties = data['features'][i]['properties']
-        print(properties)
         # print(f'properties: {properties}')
         properties_list.append(properties)
-
-    print(f'info_list: {info_list}')
-    print(f'properties_list: {properties_list}')
+        # print(f'properties list : {properties_list}')
 
     # Create export dictionary
     export_dict = {"geo_info":info_list, "properties":properties_list}
-    # export_dict["properties"] = data["features"][0]["properties"]
-    # print(export_dict)
+    # print(f'Export dict {export_dict}')
     return export_dict
-
-# --------------------
-# Program Starts Below
-# --------------------
 
 # initialize main_dictionary, where all calculated informtion for each district will be stored
 main_dictionary =  {"entries": []}
@@ -158,10 +167,3 @@ except:
     error_list.append(filename)
 
 print(main_dictionary)
-
-# Export data
-# with open("gerrymandering/output.json", 'w') as out_file:
-#     json.dump(main_dictionary, out_file, indent = 4)
-
-# print("Complete")
-# print(f'Errors: {error_list}')
